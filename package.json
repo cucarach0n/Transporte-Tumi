@@ -20,5 +20,9 @@
   },
   "dependencies": {
     "vue": "^3.5.38"
+  },
+  "overrides": {
+    "node-releases": "2.0.14",
+    "postcss-load-config": "4.0.2"
   }
 }
