@@ -1,3 +1,7 @@
+<script setup>
+import { isQuoteModalOpen } from '../store.js'
+</script>
+
 <template>
   <section id="home" class="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
     <!-- Background Image with Overlay -->
@@ -19,9 +23,9 @@
         <a href="#services" class="px-8 py-4 bg-corp-red hover:bg-red-700 text-neutral-white rounded-full font-semibold text-lg transition-all duration-300 shadow-lg shadow-corp-red/30 hover:shadow-corp-red/50 hover:-translate-y-1">
           Nuestros Servicios
         </a>
-        <a href="#contact" class="px-8 py-4 bg-transparent border-2 border-modern-gold text-modern-gold hover:bg-modern-gold hover:text-premium-black rounded-full font-semibold text-lg transition-all duration-300">
-          Contáctanos
-        </a>
+        <button @click="isQuoteModalOpen = true" class="px-8 py-4 bg-transparent border-2 border-modern-gold text-modern-gold hover:bg-modern-gold hover:text-premium-black rounded-full font-semibold text-lg transition-all duration-300">
+          Cotizar en Mapa
+        </button>
       </div>
     </div>
     

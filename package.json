@@ -19,6 +19,7 @@
     "node": "16.19.1"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "vue": "^3.5.38"
   },
   "overrides": {
