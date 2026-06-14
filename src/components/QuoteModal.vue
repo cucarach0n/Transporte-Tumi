@@ -23,17 +23,58 @@ let destMarker = null
 
 const passengers = ref(1)
 const activeSelection = ref('origin') // 'origin' or 'destination'
+
+const originRegion = ref('')
+const destRegion = ref('')
 const originCoords = ref(null)
 const destCoords = ref(null)
+
+const regions = {
+  'Huancayo': { bounds: [[-12.18, -75.35], [-11.95, -75.10]] },
+  'Jauja': { bounds: [[-11.88, -75.60], [-11.65, -75.35]] },
+  'Concepción': { bounds: [[-12.00, -75.40], [-11.85, -75.20]] },
+  'Ingenio': { bounds: [[-11.95, -75.35], [-11.80, -75.15]] },
+  'Lima': { bounds: [[-12.30, -77.20], [-11.80, -76.80]] }
+}
+const defaultBounds = [[-12.5, -77.5], [-11.5, -75.0]]
+
+const updateMapBounds = () => {
+  if (!map) return
+  
+  let currentRegion = activeSelection.value === 'origin' ? originRegion.value : destRegion.value
+  
+  if (currentRegion && regions[currentRegion]) {
+    const bounds = L.latLngBounds(regions[currentRegion].bounds)
+    map.setMaxBounds(bounds) // Restringe la vista a esta zona
+    map.flyToBounds(bounds, { padding: [20, 20], maxZoom: 14 })
+    map.setMinZoom(11) // Evita que hagan mucho zoom out y salgan de la zona
+  } else {
+    // Si no hay zona seleccionada, vista general pero restringida al centro de Perú
+    const bounds = L.latLngBounds(defaultBounds)
+    map.setMaxBounds(bounds)
+    map.flyToBounds(bounds)
+    map.setMinZoom(8)
+  }
+}
+
+watch(activeSelection, updateMapBounds)
+watch(originRegion, () => {
+  if (activeSelection.value === 'origin') updateMapBounds()
+})
+watch(destRegion, () => {
+  if (activeSelection.value === 'destination') updateMapBounds()
+})
 
 const initMap = () => {
   if (map) {
     map.invalidateSize()
+    updateMapBounds()
     return
   }
   
-  // Center roughly in Jauja/Huancayo
-  map = L.map(mapContainer.value).setView([-11.85, -75.3], 9)
+  map = L.map(mapContainer.value, {
+    maxBoundsViscosity: 1.0 // Fuerza el rebote exacto en el borde
+  }).setView([-11.85, -75.3], 9)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
@@ -41,17 +82,29 @@ const initMap = () => {
   }).addTo(map)
 
   map.on('click', (e) => {
+    // Verificar si el usuario ha seleccionado una región en el combobox primero
+    const currentRegion = activeSelection.value === 'origin' ? originRegion.value : destRegion.value
+    if (!currentRegion) {
+      alert(`Por favor, selecciona primero la ciudad de ${activeSelection.value === 'origin' ? 'Origen' : 'Destino'} en el menú desplegable.`)
+      return
+    }
+
     if (activeSelection.value === 'origin') {
       if (originMarker) map.removeLayer(originMarker)
       originMarker = L.marker(e.latlng).addTo(map).bindPopup('Origen').openPopup()
       originCoords.value = e.latlng
+      // Auto-pasar a seleccionar destino
       activeSelection.value = 'destination'
     } else {
       if (destMarker) map.removeLayer(destMarker)
       destMarker = L.marker(e.latlng).addTo(map).bindPopup('Destino').openPopup()
       destCoords.value = e.latlng
+      // Auto-pasar a origen por si quiere cambiarlo
+      activeSelection.value = 'origin'
     }
   })
+  
+  updateMapBounds()
 }
 
 watch(isQuoteModalOpen, async (val) => {
@@ -62,10 +115,17 @@ watch(isQuoteModalOpen, async (val) => {
 })
 
 const sendQuote = () => {
+  if (!originCoords.value || !destCoords.value) {
+    alert("Por favor selecciona un punto de origen y un destino en el mapa.")
+    return
+  }
+
   let text = `Hola, deseo solicitar una cotización de viaje.%0A`
-  if (originCoords.value) text += `%0A📍 *Origen:* https://maps.google.com/?q=${originCoords.value.lat},${originCoords.value.lng}`
-  if (destCoords.value) text += `%0A📍 *Destino:* https://maps.google.com/?q=${destCoords.value.lat},${destCoords.value.lng}`
-  text += `%0A👥 *Pasajeros:* ${passengers.value}`
+  text += `%0A📍 *Región Origen:* ${originRegion.value}`
+  text += `%0A🗺️ *Punto Origen:* https://maps.google.com/?q=${originCoords.value.lat},${originCoords.value.lng}`
+  text += `%0A%0A📍 *Región Destino:* ${destRegion.value}`
+  text += `%0A🗺️ *Punto Destino:* https://maps.google.com/?q=${destCoords.value.lat},${destCoords.value.lng}`
+  text += `%0A%0A👥 *Pasajeros:* ${passengers.value}`
   text += `%0A%0A¿Me podrían brindar información de disponibilidad y precios?`
   
   window.open(`https://wa.me/51950934511?text=${text}`, '_blank')
@@ -77,7 +137,7 @@ const sendQuote = () => {
   <div v-if="isQuoteModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="isQuoteModalOpen = false"></div>
     
-    <div class="bg-premium-black border border-dark-gray w-full max-w-5xl rounded-3xl shadow-2xl relative z-10 flex flex-col md:flex-row overflow-hidden max-h-full">
+    <div class="bg-premium-black border border-dark-gray w-full max-w-6xl rounded-3xl shadow-2xl relative z-10 flex flex-col md:flex-row overflow-hidden max-h-full">
       <!-- Botón cerrar modal -->
       <button @click="isQuoteModalOpen = false" class="absolute top-4 right-4 z-20 bg-dark-gray hover:bg-corp-red text-neutral-white p-2 rounded-full transition-colors">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -87,22 +147,41 @@ const sendQuote = () => {
       <div class="w-full md:w-2/5 p-8 flex flex-col justify-between overflow-y-auto">
         <div>
           <h2 class="text-3xl font-bold text-modern-gold mb-2">Cotizar Viaje</h2>
-          <p class="text-light-gray mb-8">Usa el mapa para seleccionar tu origen y destino exactos con un clic.</p>
+          <p class="text-light-gray mb-8">Elige la zona y selecciona el punto exacto en el mapa.</p>
           
           <div class="space-y-6">
+            
+            <!-- Selector de Regiones (Comboboxes) -->
+            <div class="bg-dark-gray/50 rounded-xl p-4 border border-dark-gray space-y-4">
+              <div>
+                <label class="block text-light-gray mb-1 font-medium text-sm">Zona de Origen</label>
+                <select v-model="originRegion" class="w-full bg-premium-black text-neutral-white border border-dark-gray focus:border-corp-red rounded-xl px-3 py-2 outline-none transition-colors appearance-none cursor-pointer">
+                  <option disabled value="">Selecciona la ciudad de origen</option>
+                  <option v-for="(_, loc) in regions" :key="loc" :value="loc">{{ loc }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-light-gray mb-1 font-medium text-sm">Zona de Destino</label>
+                <select v-model="destRegion" class="w-full bg-premium-black text-neutral-white border border-dark-gray focus:border-corp-red rounded-xl px-3 py-2 outline-none transition-colors appearance-none cursor-pointer">
+                  <option disabled value="">Selecciona la ciudad de destino</option>
+                  <option v-for="(_, loc) in regions" :key="loc" :value="loc">{{ loc }}</option>
+                </select>
+              </div>
+            </div>
+
             <!-- Selector de qué clic hace qué -->
             <div class="flex gap-4">
               <button 
                 @click="activeSelection = 'origin'"
-                :class="['flex-1 py-3 px-4 rounded-xl font-bold transition-colors border', activeSelection === 'origin' ? 'bg-corp-red text-neutral-white border-corp-red' : 'bg-transparent text-light-gray border-dark-gray hover:border-modern-gold']"
+                :class="['flex-1 py-3 px-2 rounded-xl font-bold text-sm transition-colors border', activeSelection === 'origin' ? 'bg-corp-red text-neutral-white border-corp-red shadow-lg shadow-corp-red/20' : 'bg-transparent text-light-gray border-dark-gray hover:border-modern-gold']"
               >
-                1. Fijar Origen
+                1. Fijar Origen en Mapa
               </button>
               <button 
                 @click="activeSelection = 'destination'"
-                :class="['flex-1 py-3 px-4 rounded-xl font-bold transition-colors border', activeSelection === 'destination' ? 'bg-corp-red text-neutral-white border-corp-red' : 'bg-transparent text-light-gray border-dark-gray hover:border-modern-gold']"
+                :class="['flex-1 py-3 px-2 rounded-xl font-bold text-sm transition-colors border', activeSelection === 'destination' ? 'bg-corp-red text-neutral-white border-corp-red shadow-lg shadow-corp-red/20' : 'bg-transparent text-light-gray border-dark-gray hover:border-modern-gold']"
               >
-                2. Fijar Destino
+                2. Fijar Destino en Mapa
               </button>
             </div>
 
@@ -111,13 +190,13 @@ const sendQuote = () => {
               <div class="flex items-center gap-3">
                 <div :class="['w-3 h-3 rounded-full', originCoords ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-gray-500']"></div>
                 <span class="text-sm" :class="originCoords ? 'text-neutral-white' : 'text-gray-400'">
-                  {{ originCoords ? 'Origen seleccionado' : 'Falta seleccionar origen' }}
+                  {{ originCoords ? 'Origen seleccionado' : 'Falta seleccionar origen en mapa' }}
                 </span>
               </div>
               <div class="flex items-center gap-3">
                 <div :class="['w-3 h-3 rounded-full', destCoords ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-gray-500']"></div>
                 <span class="text-sm" :class="destCoords ? 'text-neutral-white' : 'text-gray-400'">
-                  {{ destCoords ? 'Destino seleccionado' : 'Falta seleccionar destino' }}
+                  {{ destCoords ? 'Destino seleccionado' : 'Falta seleccionar destino en mapa' }}
                 </span>
               </div>
             </div>
@@ -143,8 +222,8 @@ const sendQuote = () => {
       </div>
 
       <!-- Panel Derecho: Mapa -->
-      <div class="w-full md:w-3/5 h-96 md:h-auto min-h-[400px]">
-        <div ref="mapContainer" class="w-full h-full"></div>
+      <div class="w-full md:w-3/5 h-[500px] md:h-auto min-h-[500px]">
+        <div ref="mapContainer" class="w-full h-full border-l border-dark-gray"></div>
       </div>
     </div>
   </div>
