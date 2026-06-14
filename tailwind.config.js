@@ -7,15 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        'premium-black': '#0D0D0D',
-        'corp-red': '#D61F26',
-        'modern-gold': '#D4A62A',
-        'neutral-white': '#F5F5F5',
-        'dark-gray': '#2B2B2B',
-        'light-gray': '#D9D9D9',
+        'premium-black': '#0B0B0B',
+        'corp-red': '#D6101E',
+        'modern-gold': '#D4AF37',
+        'neutral-white': '#FFFFFF',
+        'dark-gray': '#1F1F1F',
+        'light-gray': '#E0E0E0'
       },
       fontFamily: {
-        sans: ['Inter', 'Roboto', 'sans-serif'],
+        sans: ['Poppins', 'sans-serif'],
+        heading: ['Montserrat', 'sans-serif'],
       }
     },
   },

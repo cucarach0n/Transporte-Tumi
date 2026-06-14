@@ -1,11 +1,9 @@
 <script setup>
 import Navbar from './components/Navbar.vue'
 import HeroSection from './components/HeroSection.vue'
+import FeaturesBar from './components/FeaturesBar.vue'
 import ServicesSection from './components/ServicesSection.vue'
-import DestinationsSection from './components/DestinationsSection.vue'
-import AboutSection from './components/AboutSection.vue'
 import PricingSection from './components/PricingSection.vue'
-import ContactSection from './components/ContactSection.vue'
 import FooterComponent from './components/Footer.vue'
 import QuoteModal from './components/QuoteModal.vue'
 import { isQuoteModalOpen } from './store.js'
@@ -16,11 +14,10 @@ import { isQuoteModalOpen } from './store.js'
     <Navbar />
     <main>
       <HeroSection />
+      <FeaturesBar />
       <ServicesSection />
-      <DestinationsSection />
-      <AboutSection />
+      <!-- The map interactive banner -->
       <PricingSection />
-      <ContactSection />
     </main>
     <FooterComponent />
     
