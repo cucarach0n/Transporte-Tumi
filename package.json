@@ -5,16 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.7",
+    "@vitejs/plugin-vue": "^4.5.0",
     "autoprefixer": "^10.5.0",
-    "postcss": "^8.5.15",
-    "tailwindcss": "^3.4.19",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.12"
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.4.1",
+    "vite": "^4.5.0"
+  },
+  "engines": {
+    "node": "16.19.1"
   },
   "dependencies": {
     "vue": "^3.5.38"
